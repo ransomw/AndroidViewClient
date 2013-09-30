@@ -20,14 +20,6 @@ limitations under the License.
 __version__ = '4.4.2'
 
 import sys
-import warnings        
-if 'monkeyrunner' in sys.executable:
-    warnings.warn(
-'''
-
-You should use a 'python' interpreter, not 'monkeyrunner' for this module
-
-''', RuntimeWarning)
 import socket
 import time
 import re
@@ -59,12 +51,12 @@ class Device:
         if DEBUG:
             print >> sys.stderr, "values=", values
         return Device(*values)
-        
+
     def __init__(self, serialno, status, qualifiers=None):
         self.serialno = serialno
         self.status = status
         self.qualifiers = qualifiers
-        
+
     def __str__(self):
         return "<<<" + self.serialno + ", " + self.status + ", %s>>>" % self.qualifiers
 
@@ -77,15 +69,15 @@ class AdbClient:
         self.serialno = serialno
         self.hostname = hostname
         self.port = port
-        
+
         self.reconnect = reconnect
         self.__connect()
-    
+
         self.checkVersion()
         self.isTransportSet = False
         if settransport:
             self.__setTransport()
-    
+
     @staticmethod
     def setAlarm(timeout):
         osName = platform.system()
@@ -94,10 +86,10 @@ class AdbClient:
         if DEBUG:
             print >> sys.stderr, "setAlarm(%d)" % timeout
         signal.alarm(timeout)
-        
+
     def setReconnect(self, val):
         self.reconnect = val
-    
+
     def __connect(self):
         if DEBUG:
             print >> sys.stderr, "__connect()"
@@ -119,7 +111,7 @@ class AdbClient:
             self.close()
         except:
             pass
-            
+
     def __send(self, msg, checkok=True, reconnect=False):
         if DEBUG:
             print >> sys.stderr, "__send(%s, checkok=%s, reconnect=%s)" % (msg, checkok, reconnect)
@@ -137,7 +129,7 @@ class AdbClient:
                 print >> sys.stderr, "    __send: reconnecting"
             self.__connect()
             self.__setTransport()
-    
+
     def __receive(self, nob=None):
         if DEBUG:
             print >> sys.stderr, "__receive()"
@@ -155,7 +147,7 @@ class AdbClient:
         if DEBUG:
             print >> sys.stderr, "    __receive: returning len=", len(recv)
         return str(recv)
-        
+
     def __checkOk(self):
         if DEBUG:
             print >> sys.stderr, "__checkOk()"
@@ -180,7 +172,7 @@ class AdbClient:
         if DEBUG:
             print >> sys.stderr, "    checkConnected: returning True"
         return True
-    
+
     def checkVersion(self, reconnect=True):
         if DEBUG:
             print >> sys.stderr, "checkVersion(reconnect=%s)" % reconnect
@@ -191,7 +183,7 @@ class AdbClient:
             raise RuntimeError("ERROR: Incorrect ADB server version %s (expecting %s)" % (version, VERSION))
         if reconnect:
             self.__connect()
-        
+
     def __setTransport(self):
         if DEBUG:
             print >> sys.stderr, "__setTransport()"
@@ -210,7 +202,7 @@ class AdbClient:
             print >> sys.stderr, "    __setTransport: msg=", msg
         self.__send(msg, reconnect=False)
         self.isTransportSet = True
-    
+
     def getDevices(self):
         if DEBUG:
             print >> sys.stderr, "getDevices()"
@@ -225,7 +217,7 @@ class AdbClient:
             devices.append(Device.factory(line))
         self.__connect()
         return devices
-           
+
     def shell(self, cmd=None):
         if DEBUG:
             print >> sys.stderr, "shell(cmd=%s)" % cmd
@@ -255,37 +247,37 @@ class AdbClient:
             #return (sin, sin)
             sout = adbClient.socket.makefile("r")
             return sout
-   
+
     def __getRestrictedScreen(self):
         ''' Gets C{mRestrictedScreen} values from dumpsys. This is a method to obtain display dimensions '''
-        
+
         rsRE = re.compile('\s*mRestrictedScreen=\((?P<x>\d+),(?P<y>\d+)\) (?P<w>\d+)x(?P<h>\d+)')
         for line in self.shell('dumpsys window').splitlines():
             m = rsRE.match(line)
             if m:
                 return m.groups()
         raise RuntimeError("Couldn't find mRestrictedScreen in dumpsys")
-    
+
     def __getProp(self, key, strip=True):
         prop = self.shell('getprop %s' % key)
         if strip:
             prop = prop.rstrip('\r\n')
         return prop
-    
+
     def __getDisplayWidth(self, key, strip=True):
         (x, y, w, h) = self.__getRestrictedScreen()
         return int(w)
- 
+
     def __getDisplayHeight(self, key, strip=True):
         (x, y, w, h) = self.__getRestrictedScreen()
         return int(h)
-    
+
     def getSystemProperty(self, key, strip=True):
         return self.getProperty(key, strip)
-    
+
     def getProperty(self, key, strip=True):
         ''' Gets the property value for key '''
-        
+
         import collections
         MAP_KEYS = collections.OrderedDict([
                           (re.compile('display.width'), self.__getDisplayWidth),
@@ -298,13 +290,13 @@ class AdbClient:
             if kre.match(key):
                 return MAP_KEYS[kre](key=key, strip=strip)
         raise ValueError("key='%s' does not match any map entry")
-    
+
     def press(self, name, eventType=DOWN_AND_UP):
         cmd = 'input keyevent %s' % name
         if DEBUG:
             print >>sys.stderr, "press(%s)" % cmd
         self.shell(cmd)
-        
+
     def startActivity(self, component=None, flags=None, uri=None):
         cmd = 'am start'
         if component:
@@ -318,12 +310,12 @@ class AdbClient:
         out = self.shell(cmd)
         if re.search(r"(Error type)|(Error: )|(Cannot find 'App')", out, re.IGNORECASE|re.MULTILINE):
             raise RuntimeError(out)
-    
+
     def takeSnapshot(self, reconnect=False):
         '''
         Takes a snapshot of the device and return it as a PIL Image.
         '''
-        
+
         try:
             from PIL import Image
         except:
@@ -348,7 +340,7 @@ class AdbClient:
             mode = 'RGB'
             argMode += ';16'
         else:
-            mode = argMode            
+            mode = argMode
         self.__send('\0', checkok=False, reconnect=False)
         if DEBUG:
             print >> sys.stderr, "    takeSnapshot: reading %d bytes" % (size)
@@ -359,57 +351,57 @@ class AdbClient:
         if DEBUG:
             print >> sys.stderr, "    takeSnapshot: Image.frombuffer(%s, %s, %s, %s, %s, %s, %s)" % (mode, (width, height), 'data', 'raw', argMode, 0, 1)
         return Image.frombuffer(mode, (width, height), received, 'raw', argMode, 0, 1)
-    
+
     def touch(self, x, y, eventType=DOWN_AND_UP):
         self.shell('input tap %d %d' % (x, y))
-    
+
     def drag(self, (x0, y0), (x1, y1), duration, steps):
         self.shell('input swipe %d %d %d %d %d' % (x0, y0, x1, y1, duration*1000))
-    
+
     def type(self, text):
         self.shell(u'input text "%s"' % text)
-        
+
     def wake(self):
         self.shell('input keyevent 26')
-        
+
     @staticmethod
     def percentSame(image1, image2):
         '''
         Returns the percent of pixels that are equal
-        
+
         @author: catshoes
         '''
-        
+
         # If the images differ in size, return 0% same.
         size_x1, size_y1 = image1.size
         size_x2, size_y2 = image2.size
         if (size_x1 != size_x2 or
             size_y1 != size_y2):
             return 0
-    
+
         # Images are the same size
         # Return the percent of pixels that are equal.
         numPixelsSame = 0
         numPixelsTotal = size_x1 * size_y1
         image1Pixels = image1.load()
         image2Pixels = image2.load()
-    
+
         # Loop over all pixels, comparing pixel in image1 to image2
         for x in range(size_x1):
             for y in range(size_y1):
                 if (image1Pixels[x, y] == image2Pixels[x, y]):
                     numPixelsSame += 1
-    
+
         return numPixelsSame / float(numPixelsTotal)
 
     @staticmethod
     def sameAs(image1, image2, percent=1.0):
         '''
         Compares 2 images
-        
+
         @author: catshoes
         '''
-        
+
         return (AdbClient.percentSame(image1, image2) >= percent)
 
 
@@ -417,7 +409,7 @@ if __name__ == '__main__':
     adbClient = AdbClient(os.environ['ANDROID_SERIAL'])
     INTERACTIVE = False
     if INTERACTIVE:
-        sout = adbClient.shell() 
+        sout = adbClient.shell()
         prompt = re.compile(".+@android:(.*) [$#] \r\r\n")
         while True:
             try:
@@ -435,7 +427,7 @@ if __name__ == '__main__':
                 print line,
                 if not line:
                     break
-    
+
         print "\nBye"
     else:
         print 'date:', adbClient.shell('date')
